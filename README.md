@@ -48,3 +48,12 @@ Invalidation can be triggered by calling
     relay.invalidate();
     
     
+# License
+
+This software is released under the [Apache License v2](https://www.apache.org/licenses/LICENSE-2.0). 
+
+[RxJava](https://github.com/ReactiveX/RxJava), [RxRelay](https://github.com/JakeWharton/RxRelay) and [Timber](https://github.com/JakeWharton/timber) are also licensed under Apache License v2.
+ 
+# Copyright
+
+Copyright 2017 Damian Burke
