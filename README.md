@@ -5,20 +5,23 @@ The stateful relay is based on [RxJava](https://github.com/ReactiveX/RxJava) and
 The `Stateful Relay` is a test to simplify the creation of managed objects with a reactive lifecycle. Objects wrapped within may have
 the following attributes:
 
-* Initialization
-  * Objects can be created with an initial state.  Initial state can be one of the following.
+## Initialization
+Objects can be created with an initial state.  Initial state can be one of the following.
+
   * `T` - Object reference.
   * `Maybe<T>` - Maybe provides an initial state.
   * `Callable<T>` - Provide an initial state through a custom callable.
 
-* Invalidation
-  * Objects can be invalidated. Invalidation can be triggered in different ways.
+## Invalidation
+Objects can be invalidated. Invalidation can be triggered in different ways.
+
   * `TTL` - A time to live can be assigned to the object to force a refresh after a certain time. (TTL is only checked in `doOnSubscribe`, i.e. when accessing the object. TTL is not checked via background timer.) 
   * `Invalidator<T>` - Custom invalidator to check for properties of the object (for example `dirty` flag).
   * `.invalidate()` - Invoking the `invalidate()` method on the relay, which either marks the object as invalidated or invokes the object's `invalidate` method if it implements the `Invalidatable` interface.
 
-* Updating
-  * Objects can be update-able. The process may be defined through one of the following.
+## Updating
+Objects can be update-able. The process may be defined through one of the following.
+
   * `Maybe<T>`
   * `Callable<T>` 
 
