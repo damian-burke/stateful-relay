@@ -15,7 +15,6 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
-import timber.log.Timber;
 
 /**
  * Created by Damian on 06.05.2017.
@@ -24,13 +23,45 @@ import timber.log.Timber;
 public abstract class StatefulRelay<T> {
     public static class Builder<T> {
 
+        /**
+         * May or may not provide an initial value for the relay.
+         */
         private Maybe<T> initialization;
 
+        /**
+         * May or may not provide updated values for the relay.
+         */
         private Maybe<T> updater;
 
+        /**
+         * Invalidator instance used to invalidate the relay's value.
+         */
         private Invalidator<T> invalidator;
 
+        /**
+         * Time to live in milliseconds
+         */
         private long timeToLive = 0;
+
+        /**
+         * Default implementation for the update error consumer.
+         */
+        private Consumer<Throwable> updaterErrorConsumer = new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) throws Exception {
+
+            }
+        };
+
+        /**
+         * Default implementation for the initialization error consumer.
+         */
+        private Consumer<Throwable> initializationErrorConsumer = new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) throws Exception {
+
+            }
+        };
 
         /**
          * @param ttl Time to live in milliseconds, set to 0 for unlimited
@@ -69,26 +100,78 @@ public abstract class StatefulRelay<T> {
             return this;
         }
 
+        /**
+         * @param updater       Callable used to update the object. Wrapped in a Maybe stream internally.
+         * @param errorConsumer Error consumer to properly handle errors in the updating process.
+         * @return
+         */
+        public Builder<T> withUpdater(Callable<T> updater, Consumer<Throwable> errorConsumer) {
+            this.updater = Maybe.fromCallable(updater);
+            this.updaterErrorConsumer = errorConsumer;
+            return this;
+        }
+
+        /**
+         * @param initialization Initial value for the relay
+         * @return
+         */
         public Builder<T> withInitialization(T initialization) {
             this.initialization = Maybe.just(initialization);
             return this;
         }
 
+        /**
+         * @param initialization Initial value for the relay wrapped in a Maybe stream.
+         * @return
+         */
         public Builder<T> withInitialization(Maybe<T> initialization) {
             this.initialization = initialization;
             return this;
         }
 
+        /**
+         * @param initialization Initial value for the relay wrapped in a Maybe stream.
+         * @param errorConsumer  Error consumer to properly handle errors in the initialization process.
+         * @return
+         */
+        public Builder<T> withInitialiation(Maybe<T> initialization, Consumer<Throwable> errorConsumer) {
+            this.initialization = initialization;
+            this.initializationErrorConsumer = errorConsumer;
+            return this;
+        }
+
+        /**
+         * @param initialization Callable providing an initial value for the relay.
+         * @return
+         */
         public Builder<T> withInitialization(Callable<T> initialization) {
             this.initialization = Maybe.fromCallable(initialization);
             return this;
         }
 
+        /**
+         * @param initialization Callable providing an initial value for the relay.
+         * @param errorConsumer  Error consumer to properly handle errors in the initialization process.
+         * @return
+         */
+        public Builder<T> withInitialization(Callable<T> initialization, Consumer<Throwable> errorConsumer) {
+            this.initialization = Maybe.fromCallable(initialization);
+            this.initializationErrorConsumer = errorConsumer;
+            return this;
+        }
+
+        /**
+         * @param invalidator Invalidator for the relay's value.
+         * @return
+         */
         public Builder<T> withInvalidator(Invalidator<T> invalidator) {
             this.invalidator = invalidator;
             return this;
         }
 
+        /**
+         * @return StatefulRelay instance
+         */
         public StatefulRelay<T> build() {
             return new StatefulRelay<T>() {
                 @Override
@@ -102,12 +185,22 @@ public abstract class StatefulRelay<T> {
                 }
 
                 @Override
+                public Consumer<Throwable> updateErrorConsumer() {
+                    return updaterErrorConsumer;
+                }
+
+                @Override
+                public Consumer<Throwable> initializationErrorConsumer() {
+                    return initializationErrorConsumer;
+                }
+
+                @Override
                 public Invalidator<T> getInvalidator() {
                     return invalidator;
                 }
 
                 @Override
-                long getTTL() {
+                public long getTTL() {
                     return timeToLive;
                 }
             };
@@ -131,7 +224,6 @@ public abstract class StatefulRelay<T> {
     private long lastUpdateTime = 0;
 
     /**
-     *
      * @return True if the relay's value has to be initialized.
      */
     private boolean shouldInitialize() {
@@ -146,7 +238,6 @@ public abstract class StatefulRelay<T> {
     }
 
     /**
-     *
      * @return True if the relay's value has to be updated.
      */
     private boolean shouldUpdate() {
@@ -159,7 +250,6 @@ public abstract class StatefulRelay<T> {
     }
 
     /**
-     *
      * @return True if the relay's value has been invalidated.
      */
     private boolean isInvalidated() {
@@ -181,10 +271,17 @@ public abstract class StatefulRelay<T> {
         return false;
     }
 
+    /**
+     * @return Flowable with backpressure strategy LATEST
+     */
     public Flowable<T> asFlowable() {
         return asFlowable(BackpressureStrategy.LATEST);
     }
 
+    /**
+     * @param backpressureStrategy BackpressureStrategy for the returned flowable
+     * @return Flowable representing the relay
+     */
     public Flowable<T> asFlowable(BackpressureStrategy backpressureStrategy) {
         return relay
                 .toFlowable(backpressureStrategy)
@@ -201,12 +298,7 @@ public abstract class StatefulRelay<T> {
                                         public void accept(@NonNull T t) throws Exception {
                                             relay.accept(t);
                                         }
-                                    }, new Consumer<Throwable>() {
-                                        @Override
-                                        public void accept(@NonNull Throwable throwable) throws Exception {
-                                            Timber.e(throwable);
-                                        }
-                                    });
+                                    }, initializationErrorConsumer());
                         }
 
                         if (shouldUpdate()) {
@@ -218,12 +310,7 @@ public abstract class StatefulRelay<T> {
                                         public void accept(@NonNull T t) throws Exception {
                                             relay.accept(t);
                                         }
-                                    }, new Consumer<Throwable>() {
-                                        @Override
-                                        public void accept(@NonNull Throwable throwable) throws Exception {
-                                            Timber.e(throwable);
-                                        }
-                                    });
+                                    }, updateErrorConsumer());
                         }
                     }
                 })
@@ -250,6 +337,10 @@ public abstract class StatefulRelay<T> {
                 });
     }
 
+    /**
+     * Invalidates the currently in the relay stored value. Will trigger update process next time
+     * the relay's value is accessed.
+     */
     public void invalidate() {
         if (relay.getValue() != null && relay.getValue() instanceof Invalidatable) {
             ((Invalidatable) relay.getValue()).invalidate();
@@ -313,6 +404,14 @@ public abstract class StatefulRelay<T> {
     }
 
     Maybe<T> maybeUpdate() {
+        return null;
+    }
+
+    Consumer<Throwable> initializationErrorConsumer() {
+        return null;
+    }
+
+    Consumer<Throwable> updateErrorConsumer() {
         return null;
     }
 
