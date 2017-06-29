@@ -1,8 +1,6 @@
 # Stateful Relay
 
 The stateful relay is based on [RxJava](https://github.com/ReactiveX/RxJava) and [RxRelay](https://github.com/JakeWharton/RxRelay).
-For debug purposes it also includes [Timber](https://github.com/JakeWharton/timber), but this can easily be excluded since it has no
-influence on the functionality.
 
 The `Stateful Relay` is a test to simplify the creation of managed objects with a reactive lifecycle. Objects wrapped within may have
 the following attributes:
@@ -52,7 +50,7 @@ Invalidation can be triggered by calling
 
 This software is released under the [Apache License v2](https://www.apache.org/licenses/LICENSE-2.0). 
 
-[RxJava](https://github.com/ReactiveX/RxJava), [RxRelay](https://github.com/JakeWharton/RxRelay) and [Timber](https://github.com/JakeWharton/timber) are also licensed under Apache License v2.
+[RxJava](https://github.com/ReactiveX/RxJava) and [RxRelay](https://github.com/JakeWharton/RxRelay) are also licensed under Apache License v2.
  
 # Copyright
 
